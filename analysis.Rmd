@@ -1,0 +1,133 @@
+---
+title: "Analyze healthy human lung dataset - lung parenchyma"
+author: "Drake Williams"
+date: "`r BiocStyle::doc_date()`"
+output: html_document
+knit: (function(inputFile, encoding) { 
+    rmarkdown::render(
+        inputFile, encoding = encoding, 
+        output_file = file.path(
+            dirname(inputFile), paste0('01_HuLung_Health_',Sys.Date(),'.html'))) 
+                })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  message = F, 
+  out.width = "100%",
+  fig.align = "center",
+  time_it = T
+)
+options(width = 1200)
+```
+
+# Introduction
+
+The objective of this notebook is to load HCA lung dataset and assess expression of genes of interest. 
+Paper: https://www.nature.com/articles/s41591-023-02327-2
+
+#### Download dataset
+
+Download the dataset of interest from CellxGene here: https://cellxgene.cziscience.com/collections/6f6d381a-7701-4781-935c-db10d30de293
+
+Save as .RDS into the working directory
+
+#### Load packages
+
+```{r load packages}
+# load packages
+library(pacman)
+p_load(Seurat, 
+       scCustomize, 
+       org.Hs.eg.db,
+       ggplot2
+       )
+source("helperFxn.R")
+```
+#### Import all datasets
+```{r load downloaded dataset}
+local <- readRDS("~/Mtb_Lung_Collab/local.rds")
+```
+
+#### Convert dataset genes from Ensembl to symbol
+```{r}
+local <- convertEnsemblRownames(local)
+
+# remove nose/resp airway tissues
+Idents(local) <- "tissue"
+local <- subset(local, idents = c("nose", "respiratory airway"), invert = T)
+
+bulk2 <- AggregateExpression(local, 
+                              return.seurat = T, 
+                              slot = "counts", 
+                              assays = "RNA", 
+                              group.by = c("ann_level_2",
+                                           "donor_id"))
+
+enz <- c("PTGS2", "PTGS1", "ALOX5", "ALOX15", "ALOX12","MGLL")
+receptor <- c("PTGER1", "PTGER2", "PTGER3", "PTGER4", "GPR37", "GPR18", "GPR84", "FPR2", "LTB4R", "CYSLTR1", "CYSLTR2", "CMKLR1", "PTGIR", "TRPV1", "TRPV4", "HCAR2", "CNR1", "CNR2")
+
+
+```
+
+# Visualize GEX
+## Fine - Enzyme
+```{r, fig.width=10.5, fig.height=8}
+Idents(bulk2) <- "orig.ident"
+cairo_pdf(filename="/home/williamsdrw/Mtb_Lung_Collab/fine_enzyme_vln.pdf",
+          width=10.5,
+          height=8)
+VlnPlot_scCustom(bulk2, features = enz,
+                 pt.size = 0.5,
+                 group.by = "ann_level_2",
+                 num_columns = 3)& 
+  coord_flip() &
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), 
+          axis.title.y = element_blank(), 
+          axis.text.y = element_text(angle = 0))
+dev.off()
+VlnPlot_scCustom(bulk2, features = enz,
+                 pt.size = 0.5,
+                 group.by = "ann_level_2",
+                 num_columns = 3)& 
+  coord_flip() &
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), 
+          axis.title.x = element_blank(), 
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(angle = 0))
+
+```
+
+## Fine - Receptor
+```{r, fig.width=10.5, fig.height=16}
+cairo_pdf(filename="/home/williamsdrw/Mtb_Lung_Collab/fine_receptor_vln.pdf",
+          width=10.5,
+          height=18)
+VlnPlot_scCustom(bulk2, features = receptor,
+                 pt.size = 0.5,
+                 group.by = "ann_level_2",
+                 num_columns = 3)& 
+  coord_flip() &
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), 
+          axis.title.y = element_blank(), 
+          axis.text.y = element_text(angle = 0))
+dev.off()
+VlnPlot_scCustom(bulk2, features = receptor,
+                 pt.size = 0.5,
+                 group.by = "ann_level_2",
+                 num_columns = 3)& 
+  coord_flip() &
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), 
+          axis.title.x = element_blank(), 
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(angle = 0))
+
+```
+
+```{r}
+sessionInfo()
+```
+
+
